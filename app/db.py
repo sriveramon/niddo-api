@@ -12,6 +12,7 @@ class Database:
         self.user = os.getenv("DB_USER")
         self.password = os.getenv("DB_PASSWORD")
         self.database = os.getenv("DB_NAME")
+        self.port = int(os.getenv("DB_PORT"))
         self.timeout = 10  # Set a default timeout value
 
     def get_connection(self):
@@ -24,7 +25,7 @@ class Database:
                 host=self.host,
                 password=self.password,
                 read_timeout=self.timeout,
-                port=24905,
+                port=self.port,
                 user=self.user,
                 write_timeout=self.timeout,
             )
