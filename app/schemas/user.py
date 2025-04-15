@@ -6,7 +6,7 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
-    condoId: int
+    condo_id: int
     unit: Optional[str] = None
     
     @field_validator("email")
@@ -36,7 +36,7 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-    condoId: Optional[int] = None
+    condo_id: Optional[int] = None
     unit: Optional[str] = None
 
     @field_validator("email")
