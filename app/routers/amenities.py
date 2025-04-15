@@ -30,16 +30,16 @@ class AmenitiesRoutes:
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    # @router.get("/{user_id}", response_model=UserOut)
-    # async def get_user_route(self, user_id: int):
-    #     try:
-    #         user = self.amenitie_crud.get_user(user_id)
-    #         if not user:
-    #             raise HTTPException(status_code=404, detail="User not found")
-    #         user_json = json.dumps(user.model_dump())
-    #         return Response(content=user_json, status_code=200)
-    #     except HTTPException as e:
-    #         raise HTTPException(status_code=e.status_code, detail=e.detail)
+    @router.get("/{condo_id}", response_model=AmenitieOut)
+    async def get_user_route(self, condo_id: int):
+        try:
+            amenities_data = self.amenitie_crud.get_all_amenities_for_condo(condo_id)
+            if not amenities_data:
+                raise HTTPException(status_code=404, detail="Amenities not found for this condo")
+            amenities_json = json.dumps([amenitie.model_dump() for amenitie in amenities_data])
+            return Response(content=amenities_json, status_code=200)
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     # @router.get("/", response_model=list[UserOut])
     # async def get_all_users_route(self):
@@ -50,10 +50,10 @@ class AmenitiesRoutes:
     #     except HTTPException as e:
     #         raise HTTPException(status_code=e.status_code, detail=e.detail)
         
-    # @router.delete("/{user_id}")
-    # async def delete_user_route(self, user_id: int):
-    #     try:
-    #         self.amenitie_crud.delete_user(user_id)
-    #         return Response(status_code=204)  
-    #     except HTTPException as e:
-    #         raise HTTPException(status_code=e.status_code, detail=e.detail)
+    @router.delete("/{amenitie_id}")
+    async def delete_user_route(self, amenitie_id: int):
+        try:
+            self.amenitie_crud.delete_amenitie(amenitie_id)
+            return Response(status_code=204)  
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)

@@ -16,8 +16,8 @@ class AmenitieCreate(BaseModel):
 class AmenitieOut(BaseModel):
     name: str
     description: str
-    start_time: time
-    end_time: time
+    start_time: str
+    end_time: str
 
     class Config:
         orm_mode = True  # To tell Pydantic to treat ORM models as dictionaries
