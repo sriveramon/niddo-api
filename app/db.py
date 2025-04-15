@@ -1,28 +1,34 @@
+import pymysql
 import os
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from fastapi import HTTPException
 
-# Load environment variables from the .env file
+# Load environment variables
 load_dotenv()
 
-# Fetch the DATABASE_URL from the environment variables
-DATABASE_URL = os.getenv("DATABASE_URL")
+class Database:
+    def __init__(self):
+        self.host = os.getenv("DB_HOST")
+        self.user = os.getenv("DB_USER")
+        self.password = os.getenv("DB_PASSWORD")
+        self.database = os.getenv("DB_NAME")
+        self.timeout = 10  # Set a default timeout value
 
-# Create the SQLAlchemy engine (this connects to your MySQL database)
-engine = create_engine(DATABASE_URL)
+    def get_connection(self):
+        try:
+            connection = pymysql.connect(
+                charset="utf8mb4",
+                connect_timeout=self.timeout,
+                cursorclass=pymysql.cursors.DictCursor,
+                db=self.database,
+                host=self.host,
+                password=self.password,
+                read_timeout=self.timeout,
+                port=24905,
+                user=self.user,
+                write_timeout=self.timeout,
+            )
+            return connection
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
 
-# Create a base class for your models
-Base = declarative_base()
-
-# Create a session local class to interact with the database
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Dependency to get the database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

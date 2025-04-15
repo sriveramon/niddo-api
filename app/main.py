@@ -1,10 +1,7 @@
 from fastapi import FastAPI
-from app.routers import users  # We'll create this
+from app.routers.users import router as user_router
 
-app = FastAPI(title="Niddo API")
+app = FastAPI()
 
-app.include_router(users.router)
-
-@app.get("/")
-def root():
-    return {"message": "Welcome to Niddo backend!"}
+# Include routers
+app.include_router(user_router)
