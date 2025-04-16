@@ -24,6 +24,13 @@ class AmenitysCRUD:
                     (amenity.name, amenity.description, amenity.start_time, amenity.end_time, amenity.condo_id)
                 )
                 connection.commit()
+                amenity_id = cursor.lastrowid
+                cursor.execute("SELECT * FROM amenities WHERE id = %s", (amenity_id))
+                connection.commit()
+                amenity_created = cursor.fetchone()
+                amenity_created['start_time'] = self.timedelta_to_str(amenity_created['start_time'])
+                amenity_created['end_time'] = self.timedelta_to_str(amenity_created['end_time'])
+                return AmenityOut(**amenity_created)
         except pymysql.MySQLError as e:
             if ('CONSTRAINT \"amenities_ibfk_1\" FOREIGN KEY (\"condo_id\"' in str(e)):
                 raise HTTPException(status_code=400, detail="condo_id does not exist")
@@ -76,9 +83,17 @@ class AmenitysCRUD:
                     "UPDATE amenities SET name = %s, description = %s, start_time = %s, end_time = %s WHERE id = %s",
                     (amenity.name, amenity.description, amenity.start_time, amenity.end_time, amenitie_id)
                 )
+                connection.commit()
                 if cursor.rowcount == 0:
                     raise HTTPException(status_code=404, detail="Amenity not found")
-                connection.commit()
+                else:
+                    cursor.execute("SELECT * FROM amenities WHERE id = %s", (amenitie_id,))
+                    amenity_updated = cursor.fetchone()
+                    amenity_updated['start_time'] = self.timedelta_to_str(amenity_updated['start_time'])
+                    amenity_updated['end_time'] = self.timedelta_to_str(amenity_updated['end_time'])
+                    connection.commit()
+                    return AmenityOut(**amenity_updated)
+                
         except pymysql.MySQLError as e:
             raise HTTPException(status_code=500, detail=f"Error updating amenity: {str(e)}")
         finally:
