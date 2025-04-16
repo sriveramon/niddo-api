@@ -99,69 +99,32 @@ class ReservationsCRUD:
             raise HTTPException(status_code=500, detail=f"Error fetching reservations: {str(e)}")
         finally:
             connection.close()
-
-    # def get_amenitie_by_id(self, amenitie_id: int) -> ReservationOut:
-    #     connection = self.db.get_connection()
-    #     try:
-    #         with connection.cursor() as cursor:
-    #             cursor.execute("SELECT name, description, start_time, end_time FROM amenities where id = %s", (amenitie_id,))
-    #             amenity = cursor.fetchone()
-    #             if amenity is None:
-    #                 raise HTTPException(status_code=404, detail="Reservation not found")
-    #             amenity['start_time'] = self.timedelta_to_str(amenity['start_time'])
-    #             amenity['end_time'] = self.timedelta_to_str(amenity['end_time'])
-    #             if not amenity:
-    #                 raise HTTPException(status_code=404, detail="Reservation not found")
-    #             return ReservationOut(**amenity)
-    #     except pymysql.MySQLError as e:
-    #         raise HTTPException(status_code=500, detail=f"Error fetching amenity: {str(e)}")
-    #     finally:
-    #         connection.close()
             
-    # def get_all_amenities_for_condo(self, condo_id) -> list[ReservationOut]:
-    #     connection = self.db.get_connection()
-    #     try:
-    #         with connection.cursor() as cursor:
-    #             cursor.execute("SELECT name, description, start_time, end_time FROM amenities where condo_id = %s", (condo_id,))
-    #             result = cursor.fetchall()
-    #             if result is None:
-    #                 raise HTTPException(status_code=404, detail="Reservation not found")
-    #             amenities = []
-    #             for amenity in result:
-    #                 amenity['start_time'] = self.timedelta_to_str(amenity['start_time'])
-    #                 amenity['end_time'] = self.timedelta_to_str(amenity['end_time'])
-    #                 amenities.append(ReservationOut(**amenity))
-    #             return amenities
-    #     except pymysql.MySQLError as e:
-    #         raise HTTPException(status_code=500, detail=f"Error fetching amenities: {str(e)}")
-    #     finally:
-    #         connection.close()
+    def update_reservation(self, reservation_id: int, reservation: ReservationUpdate):
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE reservations SET user_id = %s, amenity_id = %s, date = %s, start_time = %s, end_time = %s, status = %s WHERE id = %s",
+                    (reservation.user_id, reservation.amenity_id, reservation.date, reservation.start_time, reservation.end_time, reservation.status, reservation_id)
+                )
+                if cursor.rowcount == 0:
+                    raise HTTPException(status_code=404, detail="Reservation not found")
+                connection.commit()
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error updating reservation: {str(e)}")
+        finally:
+            connection.close()
             
-    # def update_amenitie(self, amenitie_id: int, amenity: ReservationUpdate):
-    #     connection = self.db.get_connection()
-    #     try:
-    #         with connection.cursor() as cursor:
-    #             cursor.execute(
-    #                 "UPDATE amenities SET name = %s, description = %s, start_time = %s, end_time = %s WHERE id = %s",
-    #                 (amenity.name, amenity.description, amenity.start_time, amenity.end_time, amenitie_id)
-    #             )
-    #             if cursor.rowcount == 0:
-    #                 raise HTTPException(status_code=404, detail="Reservation not found")
-    #             connection.commit()
-    #     except pymysql.MySQLError as e:
-    #         raise HTTPException(status_code=500, detail=f"Error updating amenity: {str(e)}")
-    #     finally:
-    #         connection.close()
-    
-    # def delete_amenitie(self, amenitie_id: int):
-    #     connection = self.db.get_connection()
-    #     try:
-    #         with connection.cursor() as cursor:
-    #             cursor.execute("DELETE FROM amenities WHERE id = %s", (amenitie_id,))
-    #             if cursor.rowcount == 0:
-    #                 raise HTTPException(status_code=404, detail="Reservation not found")
-    #             connection.commit()
-    #     except pymysql.MySQLError as e:
-    #         raise HTTPException(status_code=500, detail=f"Error deleting amenity: {str(e)}")
-    #     finally:
-    #         connection.close()
+    def delete_reservation(self, reservation_id: int):
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM reservations WHERE id = %s", (reservation_id,))
+                if cursor.rowcount == 0:
+                    raise HTTPException(status_code=404, detail="Reservation not found")
+                connection.commit()
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error deleting reservation: {str(e)}")
+        finally:
+            connection.close()

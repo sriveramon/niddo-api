@@ -1,12 +1,11 @@
-from typing import Optional  # Import Optional from typing
 from pydantic import BaseModel
-from fastapi import HTTPException  # Importing HTTPException from FastAPI
 from datetime import time, date
 from enum import Enum
 
 class ReservationStatus(str, Enum):
     pending = "pending"
-    approved = "approved"
+    confirmed = "confirmed"
+    canceled = "canceled"
     rejected = "rejected"
     
 class ReservationCreate(BaseModel):
@@ -38,7 +37,7 @@ class ReservationUpdate(BaseModel):
     date: date
     start_time: time
     end_time: time
-    satus: ReservationStatus    # Assuming you have a predefined enum for status
+    status: ReservationStatus    # Assuming you have a predefined enum for status
     
 
     class Config:
