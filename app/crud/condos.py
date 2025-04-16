@@ -1,5 +1,5 @@
 from app.db import Database
-from app.schemas.condo import CondoCreate
+from app.schemas.condo import CondoCreate, CondoOut, CondoUpdate
 from app.schemas.condo import CondoOut
 from fastapi import HTTPException
 import pymysql
@@ -36,34 +36,45 @@ class CondosCRUD:
         finally:
             connection.close()
             
-    # def get_all_amenities_for_condo(self, condo_id) -> list[CondoOut]:
-    #     connection = self.db.get_connection()
-    #     try:
-    #         with connection.cursor() as cursor:
-    #             cursor.execute("SELECT name, description, start_time, end_time FROM amenities where condo_id = %s", (condo_id,))
-    #             result = cursor.fetchall()
-    #             if result is None:
-    #                 raise HTTPException(status_code=404, detail="Amenitie not found")
-    #             amenities = []
-    #             for amenitie in result:
-    #                 amenitie['start_time'] = self.timedelta_to_str(amenitie['start_time'])
-    #                 amenitie['end_time'] = self.timedelta_to_str(amenitie['end_time'])
-    #                 amenities.append(CondoOut(**amenitie))
-    #             return amenities
-    #     except pymysql.MySQLError as e:
-    #         raise HTTPException(status_code=500, detail=f"Error fetching amenities: {str(e)}")
-    #     finally:
-    #         connection.close()
-    
-    # def delete_amenitie(self, amenitie_id: int):
-    #     connection = self.db.get_connection()
-    #     try:
-    #         with connection.cursor() as cursor:
-    #             cursor.execute("DELETE FROM amenities WHERE id = %s", (amenitie_id,))
-    #             if cursor.rowcount == 0:
-    #                 raise HTTPException(status_code=404, detail="Amenitie not found")
-    #             connection.commit()
-    #     except pymysql.MySQLError as e:
-    #         raise HTTPException(status_code=500, detail=f"Error deleting amenitie: {str(e)}")
-    #     finally:
-    #         connection.close()
+    def get_all_condos(self) -> list[CondoOut]:
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id, name, address FROM condos")
+                condos = cursor.fetchall()
+                if not condos:
+                    raise HTTPException(status_code=404, detail="No condos found")
+                return [CondoOut(**condo) for condo in condos]
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching condos: {str(e)}")
+        finally:
+            connection.close()
+            
+    def delete_condo(self, condo_id: int):
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM condos WHERE id = %s", (condo_id,))
+                if cursor.rowcount == 0:
+                    raise HTTPException(status_code=404, detail="Condo not found")
+                connection.commit()
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error deleting condo: {str(e)}")
+        finally:
+            connection.close()
+            
+    def update_condo(self, condo_id: int, condo: CondoUpdate):
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE condos SET name = %s, address = %s WHERE id = %s",
+                    (condo.name, condo.address, condo_id)
+                )
+                if cursor.rowcount == 0:
+                    raise HTTPException(status_code=404, detail="Condo not found")
+                connection.commit()
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error updating condo: {str(e)}")
+        finally:
+            connection.close()
