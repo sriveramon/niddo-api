@@ -36,6 +36,17 @@ class AmenitysRoutes:
             return Response(content=reservation_json, status_code=200)
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
+        
+    @router.get("/reservationsbyuser/{user_id}", response_model=ReservationOut)
+    async def get_reservations_by_user(self, user_id: int):
+        try:
+            reservations_data = self.reservation_crud.get_reservations_by_user(user_id)
+            if not reservations_data:
+                raise HTTPException(status_code=404, detail="Reservations not found for this user")
+            reservations_json = json.dumps([reservation.model_dump() for reservation in reservations_data])
+            return Response(content=reservations_json, status_code=200)
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     # @router.get("/amanetiesbycondo/{condo_id}", response_model=AmenityOut)
     # async def get_amenities_by_condo(self, condo_id: int):

@@ -33,7 +33,7 @@ class AmenitysRoutes:
     @router.get("/amanetiesbycondo/{condo_id}", response_model=AmenityOut)
     async def get_amenities_by_condo(self, condo_id: int):
         try:
-            amenities_data = self.amenity_crud.get_all_amenities_for_condo(condo_id)
+            amenities_data = self.amenity_crud.get_all_amenities_by_condo(condo_id)
             if not amenities_data:
                 raise HTTPException(status_code=404, detail="Amenitys not found for this condo")
             amenities_json = json.dumps([amenity.model_dump() for amenity in amenities_data])

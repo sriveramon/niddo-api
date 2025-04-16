@@ -65,6 +65,40 @@ class ReservationsCRUD:
             raise HTTPException(status_code=500, detail=f"Error fetching reservation: {str(e)}")
         finally:
             connection.close()
+            
+    def get_reservations_by_user(self, user_id: int) -> list[ReservationOut]:
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT 
+                        reservation.id,
+                        reservation.date,
+                        reservation.start_time,
+                        reservation.end_time,
+                        reservation.status,
+                        user.name AS user_name,
+                        amenity.name AS amenity_name
+                    FROM reservations reservation
+                    JOIN users user ON reservation.user_id = user.id
+                    JOIN amenities amenity ON reservation.amenity_id = amenity.id
+                    WHERE reservation.user_id = %s""", 
+                    (user_id,))
+                result = cursor.fetchall()
+                if result is None:
+                    raise HTTPException(status_code=404, detail="Reservation not found")
+                reservations = []
+                for reservation in result:
+                    reservation['start_time'] = self.timedelta_to_str(reservation['start_time'])
+                    reservation['end_time'] = self.timedelta_to_str(reservation['end_time'])
+                    reservation['date'] = reservation['date'].strftime('%Y-%m-%d')
+                    reservations.append(ReservationOut(**reservation))
+                return reservations
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching reservations: {str(e)}")
+        finally:
+            connection.close()
 
     # def get_amenitie_by_id(self, amenitie_id: int) -> ReservationOut:
     #     connection = self.db.get_connection()

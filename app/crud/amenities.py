@@ -49,7 +49,7 @@ class AmenitysCRUD:
         finally:
             connection.close()
             
-    def get_all_amenities_for_condo(self, condo_id) -> list[AmenityOut]:
+    def get_all_amenities_by_condo(self, condo_id) -> list[AmenityOut]:
         connection = self.db.get_connection()
         try:
             with connection.cursor() as cursor:
