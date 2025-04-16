@@ -51,6 +51,25 @@ class AmenitiesRoutes:
             return Response(content=amenitie_json, status_code=200)
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
+        
+    @router.put("/{amenitie_id}", response_model=AmenitieOut)
+    async def update_amenitie(self, amenitie_id: int, amenitie: AmenitieUpdate):
+        try:
+            self.amenitie_crud.update_amenitie(amenitie_id, amenitie)
+            # Assuming `amenitie` is an object with time attributes
+            start_time_str = amenitie.start_time.strftime('%H:%M:%S')
+            end_time_str = amenitie.end_time.strftime('%H:%M:%S')
+
+            # Now create a dictionary or model to serialize
+            updated_amenitie_json = json.dumps({
+                **amenitie.model_dump(),
+                'start_time': start_time_str,
+                'end_time': end_time_str
+            })
+            return Response(content=updated_amenitie_json, status_code=200)
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
+    
     @router.delete("/{amenitie_id}")
     async def delete_amenitie(self, amenitie_id: int):
         try:

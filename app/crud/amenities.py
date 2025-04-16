@@ -1,6 +1,5 @@
 from app.db import Database
-from app.schemas.amenitie import AmenitieCreate
-from app.schemas.amenitie import AmenitieOut
+from app.schemas.amenitie import AmenitieCreate, AmenitieOut, AmenitieUpdate
 from fastapi import HTTPException
 import pymysql
 from datetime import timedelta
@@ -66,6 +65,22 @@ class AmenitiesCRUD:
                 return amenities
         except pymysql.MySQLError as e:
             raise HTTPException(status_code=500, detail=f"Error fetching amenities: {str(e)}")
+        finally:
+            connection.close()
+            
+    def update_amenitie(self, amenitie_id: int, amenitie: AmenitieUpdate):
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE amenities SET name = %s, description = %s, start_time = %s, end_time = %s WHERE id = %s",
+                    (amenitie.name, amenitie.description, amenitie.start_time, amenitie.end_time, amenitie_id)
+                )
+                if cursor.rowcount == 0:
+                    raise HTTPException(status_code=404, detail="Amenitie not found")
+                connection.commit()
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error updating amenitie: {str(e)}")
         finally:
             connection.close()
     
