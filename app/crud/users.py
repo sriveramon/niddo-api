@@ -60,6 +60,24 @@ class UserCRUD:
             raise HTTPException(status_code=500, detail=f"Error fetching users: {str(e)}")
         finally:
             connection.close()
+            
+    def update_user(self, user_id: int, user: UserCreate):
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE users SET name = %s, email = %s, password_hash = %s, condo_id = %s, unit = %s WHERE id = %s",
+                    (user.name, user.email, user.password, user.condo_id, user.unit, user_id)
+                )
+                if cursor.rowcount == 0:
+                    raise HTTPException(status_code=404, detail="User not found")
+                connection.commit()
+        except pymysql.MySQLError as e:
+            if ('CONSTRAINT \"fk_users_condo\" FOREIGN KEY (\"condo_id\"' in str(e)):
+                raise HTTPException(status_code=400, detail="condo_id does not exist")
+            raise HTTPException(status_code=500, detail=f"Error updating user: {str(e)}")
+        finally:
+            connection.close()
     
     def delete_user(self, user_id: int):
         connection = self.db.get_connection()

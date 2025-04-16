@@ -49,8 +49,7 @@ class CondosRoutes:
     async def update_condo(self, condo_id: int, condo: CondoUpdate):
         try:
             self.condo_crud.update_condo(condo_id, condo)
-            updated_condo = self.condo_crud.get_condo_by_id(condo_id)
-            updated_condo_json = json.dumps(updated_condo.model_dump())
+            updated_condo_json = json.dumps(condo.model_dump())
             return Response(content=updated_condo_json, status_code=200)  
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)

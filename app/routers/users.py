@@ -52,6 +52,15 @@ class UserRoutes:
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
         
+    @router.put("/{user_id}", response_model=UserOut)
+    async def update_user_route(self, user_id: int, user: UserUpdate):
+        try:
+            self.user_crud.update_user(user_id, user)
+            updated_user_json = json.dumps(user.model_dump())
+            return Response(content=updated_user_json, status_code=200)
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
+        
     @router.delete("/{user_id}")
     async def delete_user_route(self, user_id: int):
         try:
