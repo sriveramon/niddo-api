@@ -15,7 +15,11 @@ class UserCRUD:
                     "INSERT INTO users (name, email, password_hash, condo_id, unit) VALUES (%s, %s, %s, %s, %s)",
                     (user.name, user.email, user.password, user.condo_id, user.unit)
                 )
+                new_user_id = cursor.lastrowid
+                cursor.execute("SELECT id, name, email FROM users WHERE id = %s", (new_user_id,))
+                new_user_data = cursor.fetchone()
                 connection.commit()
+                return UserOut(**new_user_data)
         except pymysql.MySQLError as e:
             if ('CONSTRAINT \"fk_users_condo\" FOREIGN KEY (\"condo_id\"' in str(e)):
                 raise HTTPException(status_code=400, detail="condo_id does not exist")
@@ -43,7 +47,7 @@ class UserCRUD:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT id, name, email FROM users")
                 result = cursor.fetchall()
-                return [UserOut(**user) for user in result]
+                return result
         except pymysql.MySQLError as e:
             raise HTTPException(status_code=500, detail=f"Error fetching users: {str(e)}")
         finally:
@@ -55,7 +59,7 @@ class UserCRUD:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT id, name, email FROM users WHERE condo_id = %s", (condo_id,))
                 result = cursor.fetchall()
-                return [UserOut(**user) for user in result]
+                return result
         except pymysql.MySQLError as e:
             raise HTTPException(status_code=500, detail=f"Error fetching users: {str(e)}")
         finally:
@@ -71,7 +75,14 @@ class UserCRUD:
                 )
                 if cursor.rowcount == 0:
                     raise HTTPException(status_code=404, detail="User not found")
-                connection.commit()
+                else:
+                    cursor.execute("SELECT id, name, email FROM users WHERE id = %s", (user_id,))
+                    updated_user_data = cursor.fetchone()
+                    if not updated_user_data:
+                        raise HTTPException(status_code=404, detail="User not found")
+                    connection.commit()
+                    return updated_user_data
+                
         except pymysql.MySQLError as e:
             if ('CONSTRAINT \"fk_users_condo\" FOREIGN KEY (\"condo_id\"' in str(e)):
                 raise HTTPException(status_code=400, detail="condo_id does not exist")
