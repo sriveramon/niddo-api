@@ -3,20 +3,19 @@ from pydantic import BaseModel
 class CondoCreate(BaseModel):
     name: str
     address: str
-
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class CondoOut(BaseModel):
     name: str
     address: str
-    
-    class Config:
-        orm_mode = True  # To tell Pydantic to treat ORM models as dictionaries
-        
+    model_config = {
+        "from_attributes": True
+    }
 class CondoUpdate(BaseModel):
     name: str
     address: str
-
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }

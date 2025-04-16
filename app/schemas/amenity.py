@@ -9,19 +9,16 @@ class AmenityCreate(BaseModel):
     end_time: time
     condo_id: int
     
-
-    class Config:
-        orm_mode = True
-
 class AmenityOut(BaseModel):
     name: str
     description: str
-    start_time: str
-    end_time: str
+    start_time: time
+    end_time: time
+    
+    model_config = {
+        "from_attributes": True
+    }
 
-    class Config:
-        orm_mode = True  # To tell Pydantic to treat ORM models as dictionaries
-        
 class AmenityUpdate(BaseModel):
     name: str
     description: str
@@ -29,6 +26,3 @@ class AmenityUpdate(BaseModel):
     end_time: time
     condo_id: int
     
-
-    class Config:
-        orm_mode = True

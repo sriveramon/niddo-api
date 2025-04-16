@@ -1,12 +1,18 @@
-from pydantic import BaseModel, EmailStr
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
+from app.db import Base
+from app.models.condo import Condo  # Import the Condo model
 
-class UserBase(BaseModel):
-    name: str
-    email: EmailStr
-    condo_id: int
+class User(Base):
+    __tablename__ = "users"
 
-class UserCreate(UserBase):
-    password: str
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(100), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(50), nullable=False)
+    condo_id = Column(Integer, ForeignKey('condos.id'), nullable=False)  # ForeignKey to Condo
+    unit = Column(String(50), nullable=False)
 
-class UserOut(UserBase):
-    id: int
+    # Relationship to Condo
+    condo = relationship("Condo", back_populates="users")

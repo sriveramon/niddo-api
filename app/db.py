@@ -1,35 +1,62 @@
-import pymysql
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from fastapi import HTTPException
 import os
 from dotenv import load_dotenv
-from fastapi import HTTPException
+from sqlalchemy.orm import DeclarativeBase
 
 # Load environment variables
 load_dotenv()
 
-class Database:
+class Base(DeclarativeBase):
+    pass
+class AsyncDatabase:
     def __init__(self):
+        self.engine = None
+        self.SessionLocal = None
         self.host = os.getenv("DB_HOST")
         self.user = os.getenv("DB_USER")
         self.password = os.getenv("DB_PASSWORD")
         self.database = os.getenv("DB_NAME")
         self.port = int(os.getenv("DB_PORT"))
-        self.timeout = 10  # Set a default timeout value
+        self.DATABASE_URI = f"mysql+aiomysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
 
-    def get_connection(self):
+    async def connect(self):
         try:
-            connection = pymysql.connect(
-                charset="utf8mb4",
-                connect_timeout=self.timeout,
-                cursorclass=pymysql.cursors.DictCursor,
-                db=self.database,
-                host=self.host,
-                password=self.password,
-                read_timeout=self.timeout,
-                port=self.port,
-                user=self.user,
-                write_timeout=self.timeout,
+            # Create an async engine
+            self.engine = create_async_engine(
+                self.DATABASE_URI, 
+                pool_size=10,         # Maximum number of connections in the pool
+                max_overflow=20,      # Allow connections beyond pool_size
+                pool_timeout=30,      # Max time to wait for a connection
+                pool_recycle=3600,    # Maximum time for a connection to be reused
+                echo=True             # Print SQL queries (for debugging)
             )
-            return connection
-        except pymysql.MySQLError as e:
-            raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
+            # Create a session maker
+            self.SessionLocal = sessionmaker(
+                bind=self.engine,
+                class_=AsyncSession,  # Use AsyncSession for async operations
+                expire_on_commit=False
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Could not connect to database: {str(e)}")
 
+    async def get_session(self) -> AsyncSession:
+        if not self.SessionLocal:
+            await self.connect()
+        # Return a new session from the connection pool
+        return self.SessionLocal()
+
+    async def __aenter__(self):
+        await self.connect()
+        return await self.get_session()
+
+    async def __aexit__(self, exc_type, exc, tb):
+        if self.engine:
+            # Dispose of the engine to close connections in the pool
+            await self.engine.dispose()
+
+# Dependency function to get session
+async def get_db_session():
+    async with AsyncDatabase() as db_session:
+        yield db_session

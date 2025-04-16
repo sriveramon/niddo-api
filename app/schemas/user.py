@@ -20,18 +20,15 @@ class UserCreate(BaseModel):
         if len(value) < 8:
             raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
         return value
-
-    class Config:
-        orm_mode = True
-
+    
 class UserOut(BaseModel):
     name: str
     email: EmailStr
     unit: Optional[str] = None  # Optional field for unit
-
-    class Config:
-        orm_mode = True  # To tell Pydantic to treat ORM models as dictionaries
-        
+    model_config = {
+        "from_attributes": True
+    }
+   
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -50,6 +47,3 @@ class UserUpdate(BaseModel):
         if len(value) < 8:
             raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
         return value
-
-    class Config:
-        orm_mode = True

@@ -1,113 +1,95 @@
-from app.db import Database
-from app.schemas.amenity import AmenityCreate, AmenityOut, AmenityUpdate
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from fastapi import HTTPException
-import pymysql
-from datetime import timedelta
+from typing import List
 
-class AmenitysCRUD:
-    def __init__(self):
-        self.db = Database()
-        
-    def timedelta_to_str(self, tdelta: timedelta) -> str:
-        total_seconds = int(tdelta.total_seconds())
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        seconds = total_seconds % 60
-        return f"{hours:02}:{minutes:02}:{seconds:02}"
+from app.models.amenity import Amenity
+from app.schemas.amenity import AmenityCreate, AmenityUpdate, AmenityOut
 
-    def create_amenitie(self, amenity: AmenityCreate):
-        connection = self.db.get_connection()
+
+class AmenityCRUD:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def create_amenity(self, amenity: AmenityCreate) -> AmenityOut:
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO amenities (name, description, start_time, end_time, condo_id) VALUES (%s, %s, %s, %s, %s)",
-                    (amenity.name, amenity.description, amenity.start_time, amenity.end_time, amenity.condo_id)
-                )
-                connection.commit()
-                amenity_id = cursor.lastrowid
-                cursor.execute("SELECT * FROM amenities WHERE id = %s", (amenity_id))
-                connection.commit()
-                amenity_created = cursor.fetchone()
-                amenity_created['start_time'] = self.timedelta_to_str(amenity_created['start_time'])
-                amenity_created['end_time'] = self.timedelta_to_str(amenity_created['end_time'])
-                return AmenityOut(**amenity_created)
-        except pymysql.MySQLError as e:
-            if ('CONSTRAINT \"amenities_ibfk_1\" FOREIGN KEY (\"condo_id\"' in str(e)):
-                raise HTTPException(status_code=400, detail="condo_id does not exist")
-            raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")
-        finally:
-            connection.close()
+            new_amenity = Amenity(
+                name=amenity.name,
+                description=amenity.description,
+                start_time=amenity.start_time,
+                end_time=amenity.end_time,
+                condo_id=amenity.condo_id,
+            )
+            self.db.add(new_amenity)
+            await self.db.commit()
+            await self.db.refresh(new_amenity)
+            # Use model_validate() instead of from_orm()
+            return AmenityOut.model_validate(new_amenity)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error creating amenity: {str(e)}")
 
-    def get_amenitie_by_id(self, amenitie_id: int) -> AmenityOut:
-        connection = self.db.get_connection()
+    async def get_amenity_by_id(self, amenity_id: int) -> AmenityOut:
         try:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT name, description, start_time, end_time FROM amenities where id = %s", (amenitie_id,))
-                amenity = cursor.fetchone()
-                if amenity is None:
-                    raise HTTPException(status_code=404, detail="Amenity not found")
-                amenity['start_time'] = self.timedelta_to_str(amenity['start_time'])
-                amenity['end_time'] = self.timedelta_to_str(amenity['end_time'])
-                if not amenity:
-                    raise HTTPException(status_code=404, detail="Amenity not found")
-                return AmenityOut(**amenity)
-        except pymysql.MySQLError as e:
+            query = select(Amenity).where(Amenity.id == amenity_id)
+            result = await self.db.execute(query)
+            amenity = result.scalars().first()
+            if not amenity:
+                raise HTTPException(status_code=404, detail="Amenity not found")
+            return AmenityOut.model_validate(amenity)
+        except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error fetching amenity: {str(e)}")
-        finally:
-            connection.close()
-            
-    def get_all_amenities_by_condo(self, condo_id) -> list[AmenityOut]:
-        connection = self.db.get_connection()
+
+    async def get_all_amenities_by_condo(self, condo_id: int) -> List[AmenityOut]:
         try:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT name, description, start_time, end_time FROM amenities where condo_id = %s", (condo_id,))
-                result = cursor.fetchall()
-                if result is None:
-                    raise HTTPException(status_code=404, detail="Amenity not found")
-                amenities = []
-                for amenity in result:
-                    amenity['start_time'] = self.timedelta_to_str(amenity['start_time'])
-                    amenity['end_time'] = self.timedelta_to_str(amenity['end_time'])
-                    amenities.append(AmenityOut(**amenity))
-                return amenities
-        except pymysql.MySQLError as e:
+            query = select(Amenity).where(Amenity.condo_id == condo_id)
+            result = await self.db.execute(query)
+            amenities = result.scalars().all()
+            return [AmenityOut.model_validate(a) for a in amenities]
+        except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error fetching amenities: {str(e)}")
-        finally:
-            connection.close()
+
+    async def update_amenity(self, amenity_id: int, amenity_data: AmenityUpdate) -> AmenityOut:
+        try:
+            query = select(Amenity).where(Amenity.id == amenity_id)
+            result = await self.db.execute(query)
+            amenity = result.scalars().first()
             
-    def update_amenitie(self, amenitie_id: int, amenity: AmenityUpdate):
-        connection = self.db.get_connection()
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "UPDATE amenities SET name = %s, description = %s, start_time = %s, end_time = %s WHERE id = %s",
-                    (amenity.name, amenity.description, amenity.start_time, amenity.end_time, amenitie_id)
-                )
-                connection.commit()
-                if cursor.rowcount == 0:
-                    raise HTTPException(status_code=404, detail="Amenity not found")
-                else:
-                    cursor.execute("SELECT * FROM amenities WHERE id = %s", (amenitie_id,))
-                    amenity_updated = cursor.fetchone()
-                    amenity_updated['start_time'] = self.timedelta_to_str(amenity_updated['start_time'])
-                    amenity_updated['end_time'] = self.timedelta_to_str(amenity_updated['end_time'])
-                    connection.commit()
-                    return AmenityOut(**amenity_updated)
-                
-        except pymysql.MySQLError as e:
+            if not amenity:
+                raise HTTPException(status_code=404, detail="Amenity not found")
+
+            # Update the amenity fields
+            amenity.name = amenity_data.name
+            amenity.description = amenity_data.description
+            amenity.start_time = amenity_data.start_time
+            amenity.end_time = amenity_data.end_time
+
+            # Commit the changes to the database
+            await self.db.commit()
+            await self.db.refresh(amenity)
+
+            # Validate and return the updated amenity
+            return AmenityOut.model_validate(amenity)  # Use model_validate to validate the output
+
+        except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error updating amenity: {str(e)}")
-        finally:
-            connection.close()
-    
-    def delete_amenitie(self, amenitie_id: int):
-        connection = self.db.get_connection()
+
+    async def delete_amenity(self, amenity_id: int):
         try:
-            with connection.cursor() as cursor:
-                cursor.execute("DELETE FROM amenities WHERE id = %s", (amenitie_id,))
-                if cursor.rowcount == 0:
-                    raise HTTPException(status_code=404, detail="Amenity not found")
-                connection.commit()
-        except pymysql.MySQLError as e:
+            query = select(Amenity).where(Amenity.id == amenity_id)
+            result = await self.db.execute(query)
+            amenity = result.scalars().first()
+            
+            if not amenity:
+                raise HTTPException(status_code=404, detail="Amenity not found")
+
+            # Delete the amenity
+            await self.db.delete(amenity)
+            await self.db.commit()
+
+            # Optionally return some confirmation (since deletion doesn't return data, this is just a model validation for the confirmation)
+            # Example: Returning a deleted amenity or a confirmation message
+            return AmenityOut.model_validate(amenity)# This ensures the returned data is validated
+
+        except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error deleting amenity: {str(e)}")
-        finally:
-            connection.close()
+
