@@ -48,6 +48,18 @@ class UserCRUD:
             raise HTTPException(status_code=500, detail=f"Error fetching users: {str(e)}")
         finally:
             connection.close()
+            
+    def get_users_by_condo(self, condo_id: int) -> list[UserOut]:
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id, name, email FROM users WHERE condo_id = %s", (condo_id,))
+                result = cursor.fetchall()
+                return [UserOut(**user) for user in result]
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching users: {str(e)}")
+        finally:
+            connection.close()
     
     def delete_user(self, user_id: int):
         connection = self.db.get_connection()

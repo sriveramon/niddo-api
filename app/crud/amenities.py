@@ -32,19 +32,23 @@ class AmenitiesCRUD:
         finally:
             connection.close()
 
-    # def get_amenitie(self, user_id: int) -> AmenitieOut:
-    #     connection = self.db.get_connection()
-    #     try:
-    #         with connection.cursor() as cursor:
-    #             cursor.execute("SELECT id, name, email FROM users WHERE id = %s", (user_id,))
-    #             result = cursor.fetchone()
-    #             if not result:
-    #                 raise HTTPException(status_code=404, detail="User not found")
-    #             return AmenitieOut(**result)
-    #     except pymysql.MySQLError as e:
-    #         raise HTTPException(status_code=500, detail=f"Error fetching user: {str(e)}")
-    #     finally:
-    #         connection.close()
+    def get_amenitie_by_id(self, amenitie_id: int) -> AmenitieOut:
+        connection = self.db.get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT name, description, start_time, end_time FROM amenities where id = %s", (amenitie_id,))
+                amenitie = cursor.fetchone()
+                if amenitie is None:
+                    raise HTTPException(status_code=404, detail="Amenitie not found")
+                amenitie['start_time'] = self.timedelta_to_str(amenitie['start_time'])
+                amenitie['end_time'] = self.timedelta_to_str(amenitie['end_time'])
+                if not amenitie:
+                    raise HTTPException(status_code=404, detail="Amenitie not found")
+                return AmenitieOut(**amenitie)
+        except pymysql.MySQLError as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching amenitie: {str(e)}")
+        finally:
+            connection.close()
             
     def get_all_amenities_for_condo(self, condo_id) -> list[AmenitieOut]:
         connection = self.db.get_connection()
@@ -52,6 +56,8 @@ class AmenitiesCRUD:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT name, description, start_time, end_time FROM amenities where condo_id = %s", (condo_id,))
                 result = cursor.fetchall()
+                if result is None:
+                    raise HTTPException(status_code=404, detail="Amenitie not found")
                 amenities = []
                 for amenitie in result:
                     amenitie['start_time'] = self.timedelta_to_str(amenitie['start_time'])

@@ -12,7 +12,7 @@ class AmenitiesRoutes:
         self.amenitie_crud = AmenitiesCRUD()
 
     @router.post("/", response_model=AmenitieOut, )
-    async def create_user_route(self, amenitie: AmenitieCreate):
+    async def create_amenitie(self, amenitie: AmenitieCreate):
         try:
             self.amenitie_crud.create_amenitie(amenitie)
             # Assuming `amenitie` is an object with time attributes
@@ -30,8 +30,8 @@ class AmenitiesRoutes:
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    @router.get("/{condo_id}", response_model=AmenitieOut)
-    async def get_user_route(self, condo_id: int):
+    @router.get("/amanetiesbycondo/{condo_id}", response_model=AmenitieOut)
+    async def get_amenities_by_condo(self, condo_id: int):
         try:
             amenities_data = self.amenitie_crud.get_all_amenities_for_condo(condo_id)
             if not amenities_data:
@@ -41,17 +41,18 @@ class AmenitiesRoutes:
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    # @router.get("/", response_model=list[UserOut])
-    # async def get_all_users_route(self):
-    #     try:
-    #         data = self.amenitie_crud.get_all_users()
-    #         users_json = json.dumps([user.model_dump() for user in data])
-    #         return Response(content=users_json, status_code=200)
-    #     except HTTPException as e:
-    #         raise HTTPException(status_code=e.status_code, detail=e.detail)
-        
+    @router.get("/{amenitie_id}", response_model=AmenitieOut)
+    async def get_amenitie_by_id(self, amenitie_id: int):
+        try:
+            amenitie_data = self.amenitie_crud.get_amenitie_by_id(amenitie_id)
+            if not amenitie_data:
+                raise HTTPException(status_code=404, detail="Amenities not found for this condo")
+            amenitie_json = json.dumps(amenitie_data.model_dump())
+            return Response(content=amenitie_json, status_code=200)
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
     @router.delete("/{amenitie_id}")
-    async def delete_user_route(self, amenitie_id: int):
+    async def delete_amenitie(self, amenitie_id: int):
         try:
             self.amenitie_crud.delete_amenitie(amenitie_id)
             return Response(status_code=204)  

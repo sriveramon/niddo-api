@@ -31,6 +31,17 @@ class UserRoutes:
             return Response(content=user_json, status_code=200)
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
+        
+    @router.get("/usersbycondo/{condo_id}", response_model=list[UserOut])
+    async def get_users_by_condo_route(self, condo_id: int):
+        try:
+            users_data = self.user_crud.get_users_by_condo(condo_id)
+            if not users_data:
+                raise HTTPException(status_code=404, detail="Users not found for this condo")
+            users_json = json.dumps([user.model_dump() for user in users_data])
+            return Response(content=users_json, status_code=200)
+        except HTTPException as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/", response_model=list[UserOut])
     async def get_all_users_route(self):
