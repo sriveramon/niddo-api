@@ -1,10 +1,10 @@
 from app.db import Database
-from app.schemas.amenitie import AmenitieCreate, AmenitieOut, AmenitieUpdate
+from app.schemas.amenity import AmenityCreate, AmenityOut, AmenityUpdate
 from fastapi import HTTPException
 import pymysql
 from datetime import timedelta
 
-class AmenitiesCRUD:
+class AmenitysCRUD:
     def __init__(self):
         self.db = Database()
         
@@ -15,13 +15,13 @@ class AmenitiesCRUD:
         seconds = total_seconds % 60
         return f"{hours:02}:{minutes:02}:{seconds:02}"
 
-    def create_amenitie(self, amenitie: AmenitieCreate):
+    def create_amenitie(self, amenity: AmenityCreate):
         connection = self.db.get_connection()
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
                     "INSERT INTO amenities (name, description, start_time, end_time, condo_id) VALUES (%s, %s, %s, %s, %s)",
-                    (amenitie.name, amenitie.description, amenitie.start_time, amenitie.end_time, amenitie.condo_id)
+                    (amenity.name, amenity.description, amenity.start_time, amenity.end_time, amenity.condo_id)
                 )
                 connection.commit()
         except pymysql.MySQLError as e:
@@ -31,56 +31,56 @@ class AmenitiesCRUD:
         finally:
             connection.close()
 
-    def get_amenitie_by_id(self, amenitie_id: int) -> AmenitieOut:
+    def get_amenitie_by_id(self, amenitie_id: int) -> AmenityOut:
         connection = self.db.get_connection()
         try:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT name, description, start_time, end_time FROM amenities where id = %s", (amenitie_id,))
-                amenitie = cursor.fetchone()
-                if amenitie is None:
-                    raise HTTPException(status_code=404, detail="Amenitie not found")
-                amenitie['start_time'] = self.timedelta_to_str(amenitie['start_time'])
-                amenitie['end_time'] = self.timedelta_to_str(amenitie['end_time'])
-                if not amenitie:
-                    raise HTTPException(status_code=404, detail="Amenitie not found")
-                return AmenitieOut(**amenitie)
+                amenity = cursor.fetchone()
+                if amenity is None:
+                    raise HTTPException(status_code=404, detail="Amenity not found")
+                amenity['start_time'] = self.timedelta_to_str(amenity['start_time'])
+                amenity['end_time'] = self.timedelta_to_str(amenity['end_time'])
+                if not amenity:
+                    raise HTTPException(status_code=404, detail="Amenity not found")
+                return AmenityOut(**amenity)
         except pymysql.MySQLError as e:
-            raise HTTPException(status_code=500, detail=f"Error fetching amenitie: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error fetching amenity: {str(e)}")
         finally:
             connection.close()
             
-    def get_all_amenities_for_condo(self, condo_id) -> list[AmenitieOut]:
+    def get_all_amenities_for_condo(self, condo_id) -> list[AmenityOut]:
         connection = self.db.get_connection()
         try:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT name, description, start_time, end_time FROM amenities where condo_id = %s", (condo_id,))
                 result = cursor.fetchall()
                 if result is None:
-                    raise HTTPException(status_code=404, detail="Amenitie not found")
+                    raise HTTPException(status_code=404, detail="Amenity not found")
                 amenities = []
-                for amenitie in result:
-                    amenitie['start_time'] = self.timedelta_to_str(amenitie['start_time'])
-                    amenitie['end_time'] = self.timedelta_to_str(amenitie['end_time'])
-                    amenities.append(AmenitieOut(**amenitie))
+                for amenity in result:
+                    amenity['start_time'] = self.timedelta_to_str(amenity['start_time'])
+                    amenity['end_time'] = self.timedelta_to_str(amenity['end_time'])
+                    amenities.append(AmenityOut(**amenity))
                 return amenities
         except pymysql.MySQLError as e:
             raise HTTPException(status_code=500, detail=f"Error fetching amenities: {str(e)}")
         finally:
             connection.close()
             
-    def update_amenitie(self, amenitie_id: int, amenitie: AmenitieUpdate):
+    def update_amenitie(self, amenitie_id: int, amenity: AmenityUpdate):
         connection = self.db.get_connection()
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
                     "UPDATE amenities SET name = %s, description = %s, start_time = %s, end_time = %s WHERE id = %s",
-                    (amenitie.name, amenitie.description, amenitie.start_time, amenitie.end_time, amenitie_id)
+                    (amenity.name, amenity.description, amenity.start_time, amenity.end_time, amenitie_id)
                 )
                 if cursor.rowcount == 0:
-                    raise HTTPException(status_code=404, detail="Amenitie not found")
+                    raise HTTPException(status_code=404, detail="Amenity not found")
                 connection.commit()
         except pymysql.MySQLError as e:
-            raise HTTPException(status_code=500, detail=f"Error updating amenitie: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error updating amenity: {str(e)}")
         finally:
             connection.close()
     
@@ -90,9 +90,9 @@ class AmenitiesCRUD:
             with connection.cursor() as cursor:
                 cursor.execute("DELETE FROM amenities WHERE id = %s", (amenitie_id,))
                 if cursor.rowcount == 0:
-                    raise HTTPException(status_code=404, detail="Amenitie not found")
+                    raise HTTPException(status_code=404, detail="Amenity not found")
                 connection.commit()
         except pymysql.MySQLError as e:
-            raise HTTPException(status_code=500, detail=f"Error deleting amenitie: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error deleting amenity: {str(e)}")
         finally:
             connection.close()
