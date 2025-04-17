@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, func
 from sqlalchemy.orm import relationship
-from app.db import Base
+from app.db.db import Base
 
 class Condo(Base):
     __tablename__ = "condos"

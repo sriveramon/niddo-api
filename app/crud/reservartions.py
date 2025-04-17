@@ -1,130 +1,126 @@
-from app.db import Database
-from app.schemas.reservation import ReservationCreate, ReservationOut, ReservationUpdate
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from fastapi import HTTPException
-import pymysql
-from datetime import timedelta
+from typing import List
+from sqlalchemy.orm import joinedload
+from app.models.reservation import Reservation
+from app.schemas.reservation import ReservationCreate, ReservationUpdate, ReservationOut
 
-class ReservationsCRUD:
-    def __init__(self):
-        self.db = Database()
-        
-    def timedelta_to_str(self, tdelta: timedelta) -> str:
-        total_seconds = int(tdelta.total_seconds())
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        seconds = total_seconds % 60
-        return f"{hours:02}:{minutes:02}:{seconds:02}"
 
-    def create_reservation(self, reservation: ReservationCreate):
-        connection = self.db.get_connection()
+class ReservationCRUD:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def create_reservation(self, reservation: ReservationCreate) -> ReservationOut:
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO reservations (user_id, amenity_id, date, start_time, end_time, status) VALUES (%s, %s, %s, %s, %s, %s)",
-                    (reservation.user_id, reservation.amenity_id, reservation.date, reservation.start_time, reservation.end_time, reservation.status)
+            new_reservation = Reservation(
+                user_id=reservation.user_id,
+                amenity_id=reservation.amenity_id,
+                date=reservation.date,
+                start_time=reservation.start_time,
+                end_time=reservation.end_time,
+                status=reservation.status
+            )
+            self.db.add(new_reservation)
+            await self.db.commit()
+            await self.db.refresh(new_reservation)
+            return await self.get_reservation_by_id(new_reservation.id)  # Use the new method to get the reservation with user and amenity details
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error creating reservation: {str(e)}")
+
+    async def get_reservation_by_id(self, reservation_id: int) -> ReservationOut:
+        try:
+            query = (
+                select(Reservation)
+                .options(
+                    joinedload(Reservation.user),
+                    joinedload(Reservation.amenity)
                 )
-                new_reservation_id = cursor.lastrowid
-                connection.commit()
-                return new_reservation_id
-        except pymysql.MySQLError as e:
-            if ('CONSTRAINT \"amenities_ibfk_1\" FOREIGN KEY (\"condo_id\"' in str(e)):
-                raise HTTPException(status_code=400, detail="condo_id does not exist")
-            raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")
-        finally:
-            connection.close()
-            
-    def get_reservation_by_id(self, reservation_id: int) -> ReservationOut:
-        connection = self.db.get_connection()
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT 
-                        reservation.id,
-                        reservation.date,
-                        reservation.start_time,
-                        reservation.end_time,
-                        reservation.status,
-                        user.name AS user_name,
-                        amenity.name AS amenity_name
-                    FROM reservations reservation
-                    JOIN users user ON reservation.user_id = user.id
-                    JOIN amenities amenity ON reservation.amenity_id = amenity.id
-                    WHERE reservation.id = %s""", 
-                    reservation_id)
-                reservation = cursor.fetchone()
-                if reservation is None:
-                    raise HTTPException(status_code=404, detail="Reservation not found")
-                reservation['start_time'] = self.timedelta_to_str(reservation['start_time'])
-                reservation['end_time'] = self.timedelta_to_str(reservation['end_time'])
-                reservation['date'] = reservation['date'].strftime('%Y-%m-%d')
-                if not reservation:
-                    raise HTTPException(status_code=404, detail="Reservation not found")
-                return ReservationOut(**reservation)
-        except pymysql.MySQLError as e:
+                .where(Reservation.id == reservation_id)
+            )
+            result = await self.db.execute(query)
+            reservation = result.scalars().first()
+
+            if not reservation:
+                raise HTTPException(status_code=404, detail="Reservation not found")
+
+            # Now you can access reservation.user.name and reservation.amenity.name
+            return ReservationOut.model_validate({
+                "id": reservation.id,
+                "date": reservation.date,
+                "start_time": reservation.start_time,
+                "end_time": reservation.end_time,
+                "status": reservation.status,
+                "user_name": reservation.user.name,
+                "amenity_name": reservation.amenity.name
+            })
+        except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error fetching reservation: {str(e)}")
-        finally:
-            connection.close()
-            
-    def get_reservations_by_user(self, user_id: int) -> list[ReservationOut]:
-        connection = self.db.get_connection()
+
+    async def get_reservations_by_user(self, user_id: int) -> List[ReservationOut]:
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT 
-                        reservation.id,
-                        reservation.date,
-                        reservation.start_time,
-                        reservation.end_time,
-                        reservation.status,
-                        user.name AS user_name,
-                        amenity.name AS amenity_name
-                    FROM reservations reservation
-                    JOIN users user ON reservation.user_id = user.id
-                    JOIN amenities amenity ON reservation.amenity_id = amenity.id
-                    WHERE reservation.user_id = %s""", 
-                    (user_id,))
-                result = cursor.fetchall()
-                if result is None:
-                    raise HTTPException(status_code=404, detail="Reservation not found")
-                reservations = []
-                for reservation in result:
-                    reservation['start_time'] = self.timedelta_to_str(reservation['start_time'])
-                    reservation['end_time'] = self.timedelta_to_str(reservation['end_time'])
-                    reservation['date'] = reservation['date'].strftime('%Y-%m-%d')
-                    reservations.append(ReservationOut(**reservation))
-                return reservations
-        except pymysql.MySQLError as e:
-            raise HTTPException(status_code=500, detail=f"Error fetching reservations: {str(e)}")
-        finally:
-            connection.close()
-            
-    def update_reservation(self, reservation_id: int, reservation: ReservationUpdate):
-        connection = self.db.get_connection()
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "UPDATE reservations SET user_id = %s, amenity_id = %s, date = %s, start_time = %s, end_time = %s, status = %s WHERE id = %s",
-                    (reservation.user_id, reservation.amenity_id, reservation.date, reservation.start_time, reservation.end_time, reservation.status, reservation_id)
+            query = (
+                select(Reservation)
+                .options(
+                    joinedload(Reservation.user),
+                    joinedload(Reservation.amenity)
                 )
-                if cursor.rowcount == 0:
-                    raise HTTPException(status_code=404, detail="Reservation not found")
-                connection.commit()
-        except pymysql.MySQLError as e:
-            raise HTTPException(status_code=500, detail=f"Error updating reservation: {str(e)}")
-        finally:
-            connection.close()
-            
-    def delete_reservation(self, reservation_id: int):
-        connection = self.db.get_connection()
+                .where(Reservation.user_id == user_id)
+            )
+            result = await self.db.execute(query)
+            reservations = result.scalars().all()
+
+            if not reservations:
+                raise HTTPException(status_code=404, detail="Reservations not found")
+
+            return [
+                ReservationOut.model_validate({
+                    "id": r.id,
+                    "date": r.date,
+                    "start_time": r.start_time,
+                    "end_time": r.end_time,
+                    "status": r.status,
+                    "user_name": r.user.name,
+                    "amenity_name": r.amenity.name
+                })
+                for r in reservations
+            ]
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching reservations: {str(e)}")
+
+    async def update_reservation(self, reservation_id: int, data: ReservationUpdate) -> ReservationOut:
         try:
-            with connection.cursor() as cursor:
-                cursor.execute("DELETE FROM reservations WHERE id = %s", (reservation_id,))
-                if cursor.rowcount == 0:
-                    raise HTTPException(status_code=404, detail="Reservation not found")
-                connection.commit()
-        except pymysql.MySQLError as e:
+            query = select(Reservation).where(Reservation.id == reservation_id)
+            result = await self.db.execute(query)
+            reservation = result.scalars().first()
+
+            if not reservation:
+                raise HTTPException(status_code=404, detail="Reservation not found")
+
+            reservation.user_id = data.user_id
+            reservation.amenity_id = data.amenity_id
+            reservation.date = data.date
+            reservation.start_time = data.start_time
+            reservation.end_time = data.end_time
+            reservation.status = data.status
+
+            await self.db.commit()
+            await self.db.refresh(reservation)
+            return ReservationOut.model_validate(reservation)
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error updating reservation: {str(e)}")
+
+    async def delete_reservation(self, reservation_id: int):
+        try:
+            query = select(Reservation).where(Reservation.id == reservation_id)
+            result = await self.db.execute(query)
+            reservation = result.scalars().first()
+
+            if not reservation:
+                raise HTTPException(status_code=404, detail="Reservation not found")
+
+            await self.db.delete(reservation)
+            await self.db.commit()
+        except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error deleting reservation: {str(e)}")
-        finally:
-            connection.close()

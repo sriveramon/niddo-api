@@ -4,7 +4,7 @@ from fastapi_utils.inferring_router import InferringRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import UserCreate, UserOut, UserUpdate
 from app.crud.users import UserCRUD
-from app.db import get_db_session  # Import the session dependency
+from app.db.db import get_db_session  # Import the session dependency
 
 router = InferringRouter(prefix="/users", tags=["users"])
 

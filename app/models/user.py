@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from app.db import Base
-from app.models.condo import Condo  # Import the Condo model
+from app.db.db import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -16,3 +15,4 @@ class User(Base):
 
     # Relationship to Condo
     condo = relationship("Condo", back_populates="users")
+    reservations = relationship("Reservation", back_populates="user")

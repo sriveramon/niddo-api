@@ -3,7 +3,7 @@ from fastapi_utils.cbv import cbv
 from fastapi_utils.inferring_router import InferringRouter
 from app.schemas.condo import CondoCreate, CondoOut, CondoUpdate
 from app.crud.condos import CondosCRUD
-from app.db import get_db_session
+from app.db.db import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = InferringRouter(prefix="/condos", tags=["condos"])

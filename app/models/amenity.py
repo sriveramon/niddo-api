@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, Time, ForeignKey
 from sqlalchemy.orm import relationship
-from app.db import Base  # Assuming this is your declarative base
-from app.models.condo import Condo  # Import Condo model
+from app.db.db import Base  # Assuming this is your declarative base
 
 class Amenity(Base):
     __tablename__ = "amenities"
@@ -17,3 +16,4 @@ class Amenity(Base):
 
     # Relationship to Condo (this allows you to access the condo from an amenity instance)
     condo = relationship("Condo", back_populates="amenities")  # This needs to match the reverse relationship in Condo model
+    reservations = relationship("Reservation", back_populates="amenity", cascade="all, delete-orphan")

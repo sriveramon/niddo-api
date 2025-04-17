@@ -18,18 +18,18 @@ class ReservationCreate(BaseModel):
     
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ReservationOut(BaseModel):
     user_name: str
     amenity_name: str
-    date: str
-    start_time: str
-    end_time: str
+    date: date
+    start_time: time
+    end_time: time
     status: str    # Assuming you have a predefined enum for status
 
     class Config:
-        orm_mode = True  # To tell Pydantic to treat ORM models as dictionaries
+        from_attributes = True
         
 class ReservationUpdate(BaseModel):
     user_id: int
@@ -41,4 +41,4 @@ class ReservationUpdate(BaseModel):
     
 
     class Config:
-        orm_mode = True
+        from_attributes = True

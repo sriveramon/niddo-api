@@ -6,7 +6,7 @@ from typing import List
 
 from app.schemas.amenity import AmenityCreate, AmenityOut, AmenityUpdate
 from app.crud.amenities import AmenityCRUD
-from app.db import get_db_session
+from app.db.db import get_db_session
 
 router = InferringRouter(prefix="/amenities", tags=["amenities"])
 
