@@ -4,7 +4,7 @@ from fastapi_utils.inferring_router import InferringRouter
 from app.schemas.condo import CondoCreate, CondoOut, CondoUpdate
 from app.crud.condos import CondosCRUD
 from app.db.db import get_db_session
-from app.dependencies.auth import get_current_user  # Import get_current_user dependency
+from app.dependencies.auth import require_role# Import get_current_user dependency
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = InferringRouter(prefix="/condos", tags=["condos"])
@@ -15,7 +15,7 @@ class CondosRoutes:
         self.condo_crud = CondosCRUD(db)
 
     @router.post("/", response_model=CondoOut, status_code=201)
-    async def create_condo(self, condo: CondoCreate, current_user: dict = Depends(get_current_user)):
+    async def create_condo(self, condo: CondoCreate, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to create this condo")
@@ -25,7 +25,7 @@ class CondosRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/{condo_id}", response_model=CondoOut, status_code=200)
-    async def get_condo_by_id(self, condo_id: int, current_user: dict = Depends(get_current_user)):
+    async def get_condo_by_id(self, condo_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to access this condo")
@@ -37,7 +37,7 @@ class CondosRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/", response_model=list[CondoOut], status_code=200)
-    async def get_all_condos(self, current_user: dict = Depends(get_current_user)):
+    async def get_all_condos(self, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to access all condos")
@@ -49,7 +49,7 @@ class CondosRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.put("/{condo_id}", response_model=CondoOut, status_code=200)
-    async def update_condo(self, condo_id: int, condo: CondoUpdate, current_user: dict = Depends(get_current_user)):
+    async def update_condo(self, condo_id: int, condo: CondoUpdate, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to update this condo")
@@ -59,7 +59,7 @@ class CondosRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.delete("/{condo_id}", status_code=204)
-    async def delete_condo(self, condo_id: int, current_user: dict = Depends(get_current_user)):
+    async def delete_condo(self, condo_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to delete this condo")

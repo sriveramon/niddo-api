@@ -5,6 +5,7 @@ from typing import List
 
 from app.models.amenity import Amenity
 from app.schemas.amenity import AmenityCreate, AmenityUpdate, AmenityOut
+from app.utils.logger import logger  # Import the logger
 
 
 class AmenityCRUD:
@@ -13,6 +14,7 @@ class AmenityCRUD:
 
     async def create_amenity(self, amenity: AmenityCreate) -> AmenityOut:
         try:
+            logger.debug(f"Creating amenity with data: {amenity}")
             new_amenity = Amenity(
                 name=amenity.name,
                 description=amenity.description,
@@ -23,38 +25,48 @@ class AmenityCRUD:
             self.db.add(new_amenity)
             await self.db.commit()
             await self.db.refresh(new_amenity)
-            # Use model_validate() instead of from_orm()
-            return AmenityOut.model_validate(new_amenity)
+            logger.info(f"Amenity created successfully: {new_amenity}")
+            return AmenityOut.model_validate(new_amenity)  # Use model_validate for output
         except Exception as e:
+            logger.error(f"Error creating amenity: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error creating amenity: {str(e)}")
 
     async def get_amenity_by_id(self, amenity_id: int) -> AmenityOut:
         try:
+            logger.debug(f"Fetching amenity with ID: {amenity_id}")
             query = select(Amenity).where(Amenity.id == amenity_id)
             result = await self.db.execute(query)
             amenity = result.scalars().first()
             if not amenity:
+                logger.warning(f"Amenity not found with ID: {amenity_id}")
                 raise HTTPException(status_code=404, detail="Amenity not found")
+            logger.info(f"Amenity fetched successfully: {amenity}")
             return AmenityOut.model_validate(amenity)
         except Exception as e:
+            logger.error(f"Error fetching amenity: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error fetching amenity: {str(e)}")
 
     async def get_all_amenities_by_condo(self, condo_id: int) -> List[AmenityOut]:
         try:
+            logger.debug(f"Fetching all amenities for condo ID: {condo_id}")
             query = select(Amenity).where(Amenity.condo_id == condo_id)
             result = await self.db.execute(query)
             amenities = result.scalars().all()
+            logger.info(f"Fetched {len(amenities)} amenities for condo ID: {condo_id}")
             return [AmenityOut.model_validate(a) for a in amenities]
         except Exception as e:
+            logger.error(f"Error fetching amenities: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error fetching amenities: {str(e)}")
 
     async def update_amenity(self, amenity_id: int, amenity_data: AmenityUpdate) -> AmenityOut:
         try:
+            logger.debug(f"Updating amenity with ID: {amenity_id} and data: {amenity_data}")
             query = select(Amenity).where(Amenity.id == amenity_id)
             result = await self.db.execute(query)
             amenity = result.scalars().first()
-            
+
             if not amenity:
+                logger.warning(f"Amenity not found with ID: {amenity_id}")
                 raise HTTPException(status_code=404, detail="Amenity not found")
 
             # Update the amenity fields
@@ -66,30 +78,29 @@ class AmenityCRUD:
             # Commit the changes to the database
             await self.db.commit()
             await self.db.refresh(amenity)
-
-            # Validate and return the updated amenity
-            return AmenityOut.model_validate(amenity)  # Use model_validate to validate the output
-
+            logger.info(f"Amenity updated successfully: {amenity}")
+            return AmenityOut.model_validate(amenity)  # Use model_validate for output
         except Exception as e:
+            logger.error(f"Error updating amenity: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error updating amenity: {str(e)}")
 
     async def delete_amenity(self, amenity_id: int):
         try:
+            logger.debug(f"Deleting amenity with ID: {amenity_id}")
             query = select(Amenity).where(Amenity.id == amenity_id)
             result = await self.db.execute(query)
             amenity = result.scalars().first()
-            
+
             if not amenity:
+                logger.warning(f"Amenity not found with ID: {amenity_id}")
                 raise HTTPException(status_code=404, detail="Amenity not found")
 
             # Delete the amenity
             await self.db.delete(amenity)
             await self.db.commit()
-
-            # Optionally return some confirmation (since deletion doesn't return data, this is just a model validation for the confirmation)
-            # Example: Returning a deleted amenity or a confirmation message
-            return AmenityOut.model_validate(amenity)# This ensures the returned data is validated
-
+            logger.info(f"Amenity deleted successfully with ID: {amenity_id}")
+            return AmenityOut.model_validate(amenity)  # Optionally return the deleted amenity for confirmation
         except Exception as e:
+            logger.error(f"Error deleting amenity: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error deleting amenity: {str(e)}")
 

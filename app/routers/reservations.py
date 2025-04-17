@@ -7,7 +7,7 @@ from typing import List
 from app.schemas.reservation import ReservationCreate, ReservationOut, ReservationUpdate
 from app.crud.reservartions import ReservationCRUD
 from app.db.db import get_db_session
-from app.dependencies.auth import get_current_user  # Import get_current_user dependency
+from app.dependencies.auth import require_role# Import get_current_user dependency
 
 router = InferringRouter(prefix="/reservations", tags=["reservations"])
 
@@ -17,7 +17,7 @@ class ReservationsRoutes:
         self.reservation_crud = ReservationCRUD(db)
 
     @router.post("/", response_model=ReservationOut, status_code=201)
-    async def create_reservation(self, reservation: ReservationCreate, current_user: dict = Depends(get_current_user)):
+    async def create_reservation(self, reservation: ReservationCreate, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to create this reservation")
@@ -27,7 +27,7 @@ class ReservationsRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/{reservation_id}", response_model=ReservationOut, status_code=200)
-    async def get_reservation_by_id(self, reservation_id: int, current_user: dict = Depends(get_current_user)):
+    async def get_reservation_by_id(self, reservation_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to access this reservation")
@@ -39,7 +39,7 @@ class ReservationsRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/reservationsbyuser/{user_id}", response_model=List[ReservationOut], status_code=200)
-    async def get_reservations_by_user(self, user_id: int, current_user: dict = Depends(get_current_user)):
+    async def get_reservations_by_user(self, user_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to access reservations for this user")
@@ -51,7 +51,7 @@ class ReservationsRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.put("/{reservation_id}", response_model=ReservationOut, status_code=200)
-    async def update_reservation(self, reservation_id: int, reservation: ReservationUpdate, current_user: dict = Depends(get_current_user)):
+    async def update_reservation(self, reservation_id: int, reservation: ReservationUpdate, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to update this reservation")
@@ -61,7 +61,7 @@ class ReservationsRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.delete("/{reservation_id}")
-    async def delete_reservation(self, reservation_id: int, current_user: dict = Depends(get_current_user)):
+    async def delete_reservation(self, reservation_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to delete this reservation")

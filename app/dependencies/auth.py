@@ -1,15 +1,44 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from app.utils.jwt import verify_token
+from app.utils.logger import logger  # Import the logger
 import os
-ENVIROMENT = os.getenv("ENV")
 
+ENVIROMENT = os.getenv("ENV")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
-    if ENVIROMENT == "DeVeLoPmEnT":
-        return True
-    if verify_token(token) is False:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    return True  # Or fetch full user from DB using payload["sub"] (user_id)
+    try:
+        logger.debug("Attempting to verify token")
+        if ENVIROMENT == "DeVeLoPmEnT":
+            logger.info("Development environment detected, skipping token verification")
+            return True
+
+        credentials = verify_token(token)
+        if credentials is None:
+            logger.warning("Invalid token provided")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        logger.info(f"Token verified successfully for user ID: {credentials.get('sub')}")
+        return credentials  # Or fetch full user from DB using payload["sub"] (user_id)
+    except Exception as e:
+        logger.error(f"Error verifying token: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Token verification failed")
+
+def require_role(required_roles: list[str]):
+    async def role_checker(current_user: dict = Depends(get_current_user)):
+        try:
+            logger.debug(f"Checking roles for user: {current_user.get('sub')}")
+            if current_user["role"] not in required_roles:
+                logger.warning(f"Access denied for user ID: {current_user.get('sub')} with role: {current_user['role']}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't have access to this resource"
+                )
+            logger.info(f"Role check passed for user ID: {current_user.get('sub')}")
+            return current_user
+        except Exception as e:
+            logger.error(f"Error during role check: {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Role verification failed")
+    return role_checker

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import UserCreate, UserOut, UserUpdate
 from app.crud.users import UserCRUD
 from app.db.db import get_db_session  # Import the session dependency
-from app.dependencies.auth import get_current_user  # Import the get_current_user dependency
+from app.dependencies.auth import require_role  # Import the get_current_user dependency
 
 router = InferringRouter(prefix="/users", tags=["users"])
 
@@ -15,7 +15,7 @@ class UserRoutes:
         self.user_crud = UserCRUD(db)
 
     @router.post("/", response_model=UserOut, status_code=201)
-    async def create_user_route(self, user: UserCreate, current_user: dict = Depends(get_current_user)):
+    async def create_user_route(self, user: UserCreate, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to create a user")
@@ -25,7 +25,7 @@ class UserRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/{user_id}", response_model=UserOut, status_code=200)
-    async def get_user_by_id(self, user_id: int, current_user: dict = Depends(get_current_user)):
+    async def get_user_by_id(self, user_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to access this user")
@@ -37,7 +37,7 @@ class UserRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/usersbycondo/{condo_id}", response_model=list[UserOut], status_code=200)
-    async def get_users_by_condo_route(self, condo_id: int, current_user: dict = Depends(get_current_user)):
+    async def get_users_by_condo_route(self, condo_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to access users in this condo")
@@ -49,9 +49,9 @@ class UserRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/", response_model=list[UserOut], status_code=200)
-    async def get_all_users(self, current_user: dict = Depends(get_current_user)):
+    async def get_all_users(self, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
-            if current_user is not True:
+            if current_user is None:
                 raise HTTPException(status_code=403, detail="Not authorized to access all users")
             users_data = await self.user_crud.get_all_users()
             return users_data
@@ -59,7 +59,7 @@ class UserRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.put("/{user_id}", response_model=UserOut, status_code=200)
-    async def update_user_route(self, user_id: int, user: UserUpdate, current_user: dict = Depends(get_current_user)):
+    async def update_user_route(self, user_id: int, user: UserUpdate, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to update this user")
@@ -69,7 +69,7 @@ class UserRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.delete("/{user_id}")
-    async def delete_user_route(self, user_id: int, current_user: dict = Depends(get_current_user)):
+    async def delete_user_route(self, user_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to delete this user")

@@ -7,7 +7,7 @@ from typing import List
 from app.schemas.amenity import AmenityCreate, AmenityOut, AmenityUpdate
 from app.crud.amenities import AmenityCRUD
 from app.db.db import get_db_session
-from app.dependencies.auth import get_current_user  # Import get_current_user dependency
+from app.dependencies.auth import require_role# Import get_current_user dependency
 
 router = InferringRouter(prefix="/amenities", tags=["amenities"])
 
@@ -17,7 +17,7 @@ class AmenitysRoutes:
         self.amenity_crud = AmenityCRUD(db)
 
     @router.post("/", response_model=AmenityOut, status_code=201)
-    async def create_amenity(self, amenity: AmenityCreate, current_user: dict = Depends(get_current_user)):
+    async def create_amenity(self, amenity: AmenityCreate, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to create this amenity")
@@ -27,7 +27,7 @@ class AmenitysRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/amenitiesbycondo/{condo_id}", response_model=List[AmenityOut], status_code=200)
-    async def get_amenities_by_condo(self, condo_id: int, current_user: dict = Depends(get_current_user)):
+    async def get_amenities_by_condo(self, condo_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to access amenities for this condo")
@@ -39,7 +39,7 @@ class AmenitysRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.get("/{amenity_id}", response_model=AmenityOut, status_code=200)
-    async def get_amenity_by_id(self, amenity_id: int, current_user: dict = Depends(get_current_user)):
+    async def get_amenity_by_id(self, amenity_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to access this amenity")
@@ -51,7 +51,7 @@ class AmenitysRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     @router.put("/{amenity_id}", response_model=AmenityOut, status_code=200)
-    async def update_amenity(self, amenity_id: int, amenity: AmenityUpdate, current_user: dict = Depends(get_current_user)):
+    async def update_amenity(self, amenity_id: int, amenity: AmenityUpdate, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to update this amenity")
@@ -61,7 +61,7 @@ class AmenitysRoutes:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
         
     @router.delete("/{amenity_id}")
-    async def delete_user_route(self, amenity_id: int, current_user: dict = Depends(get_current_user)):
+    async def delete_user_route(self, amenity_id: int, current_user: dict = Depends(require_role(["admin", "resident"]))):
         try:
             if current_user is not True:
                 raise HTTPException(status_code=403, detail="Not authorized to delete this amenity")
