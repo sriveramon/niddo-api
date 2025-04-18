@@ -17,6 +17,6 @@ def verify_token(token: str):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
         role = payload.get("role")
-        return {"user_id": user_id, "role": role}
+        return {"sub": user_id, "role": role}
     except JWTError:
         return None
