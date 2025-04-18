@@ -15,8 +15,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 def verify_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = int(payload.get("sub"))
-        role = payload.get("role")
-        return {"sub": user_id, "role": role}
+        user_id = int(payload.get("user_id"))
+        user_role = payload.get("user_role")
+        return {"user_id": user_id, "user_role": user_role}
     except JWTError:
         return None

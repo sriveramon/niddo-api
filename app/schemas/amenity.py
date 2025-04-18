@@ -10,6 +10,7 @@ class AmenityCreate(BaseModel):
     condo_id: int
     
 class AmenityOut(BaseModel):
+    id: int
     name: str
     description: str
     start_time: time
