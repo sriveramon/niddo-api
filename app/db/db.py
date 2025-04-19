@@ -20,7 +20,10 @@ class AsyncDatabase:
         self.password = os.getenv("DB_PASSWORD")
         self.database = os.getenv("DB_NAME")
         self.port = int(os.getenv("DB_PORT"))
-        self.DATABASE_URI = f"mysql+aiomysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        if os.getenv("DB_DEV_URL"):
+            self.DATABASE_URI = os.getenv("DB_DEV_URL")
+        else:
+            self.DATABASE_URI = os.getenv("DB_URL")
 
     async def connect(self):
         try:
