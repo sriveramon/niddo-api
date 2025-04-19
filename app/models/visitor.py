@@ -11,7 +11,7 @@ class Visitor(Base):
     __tablename__ = "visitors"
 
     id = Column(Integer, primary_key=True, index=True)
-    identification = Column(String(100), nullable=False)
+    identification = Column(String(100), nullable=True)
     visit_name = Column(String(length=100), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     condo_id = Column(Integer, ForeignKey("condos.id"), nullable=False)
