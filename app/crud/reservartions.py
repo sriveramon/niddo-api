@@ -79,8 +79,7 @@ class ReservationCRUD:
             reservations = result.scalars().all()
 
             if not reservations:
-                logger.warning(f"No reservations found for user ID: {user_id}")
-                raise HTTPException(status_code=404, detail="Reservations not found")
+               return []
 
             logger.info(f"Fetched {len(reservations)} reservations for user ID: {user_id}")
             return [

@@ -44,8 +44,6 @@ class ReservationsRoutes:
             if current_user is False:
                 raise HTTPException(status_code=403, detail="Not authorized to access reservations for this user")
             reservations_data = await self.reservation_crud.get_reservations_by_user(user_id)
-            if not reservations_data:
-                raise HTTPException(status_code=404, detail="No reservations found for this user")
             return reservations_data
         except HTTPException as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail)
