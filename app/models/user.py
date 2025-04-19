@@ -16,3 +16,4 @@ class User(Base):
     # Relationship to Condo
     condo = relationship("Condo", back_populates="users")
     reservations = relationship("Reservation", back_populates="user")
+    visitors = relationship("Visitor", back_populates="user")

@@ -9,6 +9,7 @@ from app.routers.condos import router as condo_router
 from app.routers.reservations import router as reservation_router
 from app.routers.auth import router as auth_router
 from app.routers.blocks import router as block_router
+from app.routers.visitors import router as visitor_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,3 +40,4 @@ app.include_router(condo_router)
 app.include_router(reservation_router)
 app.include_router(auth_router)
 app.include_router(block_router)
+app.include_router(visitor_router)

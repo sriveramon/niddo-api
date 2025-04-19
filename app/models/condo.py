@@ -13,3 +13,4 @@ class Condo(Base):
     # Define the reverse relationship to Amenity
     amenities = relationship("Amenity", back_populates="condo", cascade="all, delete-orphan")
     users = relationship("User", back_populates="condo")
+    visitors = relationship("Visitor", back_populates="condo")
